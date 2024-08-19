@@ -6,7 +6,6 @@
 #include <vector>
 #include <chrono>
 #include <thread>
-#include <cmath>
 
 // Constants for grid and tetromino sizes
 const int ROWS = 10;
@@ -34,32 +33,6 @@ int TETROMINOES[NUM_TETROMINOES][4][4] = {
     {{1, 1, 1}, {1, 0, 0}},                  // L3
     {{1, 1}, {0, 1}, {0, 1}}                 // L4
 };
-
-// Function to calculate the heuristic score for a given tetromino
-double calculate_heuristic_score(const int tetromino[4][4], int usage_count) {
-    int cells_covered = 0;
-    int complexity = 0;
-
-    // Calculate cells covered and complexity (number of turns in the shape)
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            if (tetromino[i][j] == 1) {
-                cells_covered++;
-                // Count complexity based on the number of turns in the shape
-                if ((i > 0 && tetromino[i-1][j] == 0) || (j > 0 && tetromino[i][j-1] == 0)) {
-                    complexity++;
-                }
-            }
-        }
-    }
-
-    // Heuristic score is a combination of size, complexity, and usage penalty
-    double size_factor = static_cast<double>(cells_covered);
-    double complexity_factor = static_cast<double>(complexity);
-    double usage_penalty = std::log(usage_count + 1); // Logarithmic penalty for overuse
-
-    return size_factor + complexity_factor - usage_penalty;
-}
 
 // Function to create an empty grid
 void create_grid(int grid[ROWS][COLS]) {
@@ -136,7 +109,7 @@ bool find_first_empty_cell(int grid[ROWS][COLS], int& row, int& col) {
     return false;
 }
 
-// Modify the fill_grid function to use heuristic ordering
+// Function to fill the grid with tetrominoes
 bool fill_grid(int grid[ROWS][COLS], int tetromino_usage[NUM_TETROMINOES], int current_id, std::chrono::steady_clock::time_point& last_export_time, int export_interval) {
     int row = -1, col = -1;
 
@@ -157,31 +130,24 @@ bool fill_grid(int grid[ROWS][COLS], int tetromino_usage[NUM_TETROMINOES], int c
         return true;
     }
 
-    // Create a vector of tetromino indices and calculate heuristic scores
-    std::vector<std::pair<int, double>> tetromino_scores;
+    // Create a vector of tetromino indices and shuffle it
+    std::vector<int> tetromino_indices(NUM_TETROMINOES);
     for (int i = 0; i < NUM_TETROMINOES; ++i) {
-        double score = calculate_heuristic_score(TETROMINOES[i], tetromino_usage[i]);
-        tetromino_scores.push_back({i, score});
+        tetromino_indices[i] = i;
     }
-
-    // Sort tetrominoes by heuristic score (highest first)
-    std::sort(tetromino_scores.begin(), tetromino_scores.end(),
-              [](const std::pair<int, double>& a, const std::pair<int, double>& b) {
-                  return a.second > b.second;
-              });
+    std::random_shuffle(tetromino_indices.begin(), tetromino_indices.end());
 
     // Check if it's time to export the current grid state
     auto now = std::chrono::steady_clock::now();
     if (std::chrono::duration_cast<std::chrono::minutes>(now - last_export_time).count() >= export_interval) {
-        export_grid(grid, "grid_output_intermediate.txt", true); // Append to the intermediate file
+        export_grid(grid, "output/grid_output_intermediate.txt", true); // Append to the intermediate file
         last_export_time = now;
     }
 
-    // Try placing each tetromino in the sorted order
-    for (const auto& t_score : tetromino_scores) {
-        int t = t_score.first;
+    // Try placing each tetromino in the shuffled order
+    for (int t : tetromino_indices) {
         if (can_place_tetromino(grid, TETROMINOES[t], row, col)) {
-            place_tetromino(grid, TETROMINOES[t], row, col, current_id);
+            place_tetromino(grid, TETROMINOES[t], row, col, current_id); // Provide unique_id
             tetromino_usage[t]++;
 
             // Recurse to continue placing tetrominoes
@@ -190,7 +156,7 @@ bool fill_grid(int grid[ROWS][COLS], int tetromino_usage[NUM_TETROMINOES], int c
             }
 
             // Backtrack: If further placement fails, remove the tetromino
-            remove_tetromino(grid, TETROMINOES[t], row, col, current_id);
+            remove_tetromino(grid, TETROMINOES[t], row, col, current_id); // Provide unique_id
             tetromino_usage[t]--;
         }
     }
@@ -211,7 +177,7 @@ int main() {
     auto last_export_time = std::chrono::steady_clock::now();
 
     if (fill_grid(grid, tetromino_usage, 1, last_export_time, export_interval)) {
-    export_grid(grid, "grid_output.txt", false); // Overwrite the final grid file
+    export_grid(grid, "output/grid_output.txt", false); // Overwrite the final grid file
     std::cout << "Grid solved and exported to grid_output.txt\n";
     } else {
         std::cout << "Could not fill the grid completely.\n";
