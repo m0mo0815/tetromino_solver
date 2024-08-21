@@ -7,6 +7,7 @@
 #include <chrono>
 #include <thread>
 #include <cmath>
+#include <queue>
 
 // Constants for grid and tetromino sizes
 const int MAX_ROWS = 100;
@@ -122,6 +123,78 @@ void remove_tetromino(int** grid, const int tetromino[4][4], int top_left_row, i
     }
 }
 
+// Function to check if there are isolated cells
+bool has_isolated_cells(int** grid, int rows, int cols) {
+    // Dynamic allocation of the visited array
+    bool** visited = new bool*[rows];
+    for (int i = 0; i < rows; ++i) {
+        visited[i] = new bool[cols]();
+    }
+
+    // Lambda function to check grid boundaries
+    auto is_within_bounds = [&](int r, int c) {
+        return r >= 0 && r < rows && c >= 0 && c < cols;
+    };
+
+    // Lambda function for BFS
+    auto bfs = [&](int r, int c) {
+        std::queue<std::pair<int, int>> q;
+        q.push({r, c});
+        visited[r][c] = true;
+        int cell_count = 0;
+
+        std::vector<int> dr = {-1, 1, 0, 0};
+        std::vector<int> dc = {0, 0, -1, 1};
+
+        while (!q.empty()) {
+            auto [cr, cc] = q.front();
+            q.pop();
+            cell_count++;
+
+            for (int i = 0; i < 4; ++i) {
+                int nr = cr + dr[i];
+                int nc = cc + dc[i];
+
+                if (is_within_bounds(nr, nc) && grid[nr][nc] == 0 && !visited[nr][nc]) {
+                    visited[nr][nc] = true;
+                    q.push({nr, nc});
+                }
+            }
+        }
+        return cell_count;
+    };
+
+    // Find all empty cells and check for isolation
+    int total_empty_cells = 0;
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            if (grid[i][j] == 0 && !visited[i][j]) {
+                int cell_count = bfs(i, j);
+                total_empty_cells += cell_count;
+
+                // If isolated region size is not a multiple of 4, return true
+                if (cell_count % 4 != 0) {
+                    // std::cout << "Isolated region found with " << cell_count << " cells.\n";
+                    // Clean up memory before returning
+                    for (int i = 0; i < rows; ++i) {
+                        delete[] visited[i];
+                    }
+                    delete[] visited;
+                    return true;
+                }
+            }
+        }
+    }
+
+    // Clean up memory
+    for (int i = 0; i < rows; ++i) {
+        delete[] visited[i];
+    }
+    delete[] visited;
+
+    return false;
+}
+
 bool fill_grid(int** grid, int tetromino_usage[NUM_TETROMINOES], int current_id, std::chrono::steady_clock::time_point& last_export_time, int export_interval, int rows, int cols, const std::string& base_filename) {
     int row = -1, col = -1;
 
@@ -168,10 +241,19 @@ bool fill_grid(int** grid, int tetromino_usage[NUM_TETROMINOES], int current_id,
             place_tetromino(grid, TETROMINOES[t], row, col, current_id); // Provide unique_id
             tetromino_usage[t]++;
 
-            // Recurse to continue placing tetrominoes
-            if (fill_grid(grid, tetromino_usage, current_id + 1, last_export_time, export_interval, rows, cols, base_filename)) {
-                return true;  // Successfully filled the grid
-            }
+            // Debug: Print current grid state
+            // std::cout << "Placed tetromino " << t << " at (" << row << ", " << col << ")\n";
+
+            // Check for isolated cells after placing the tetromino
+            if (!has_isolated_cells(grid, rows, cols)) {
+                // Recurse to continue placing tetrominoes
+                if (fill_grid(grid, tetromino_usage, current_id + 1, last_export_time, export_interval, rows, cols, base_filename)) {
+                    return true;  // Successfully filled the grid
+                }
+            } 
+            //else {
+            //    std::cout << "Pruned due to isolated cells after placing tetromino " << t << " at (" << row << ", " << col << ")\n";
+            //}
 
             // Backtrack: If further placement fails, remove the tetromino
             remove_tetromino(grid, TETROMINOES[t], row, col, current_id); // Provide unique_id
@@ -194,9 +276,9 @@ int main(int argc, char** argv) {
     std::string unique_id = argv[3];
    
     int** grid = new int*[rows];
-        for (int i = 0; i < rows; ++i) {
-            grid[i] = new int[cols]();
-        }
+    for (int i = 0; i < rows; ++i) {
+        grid[i] = new int[cols]();
+    }
 
     int tetromino_usage[NUM_TETROMINOES] = {0};
     int export_interval = 1; // Export interval in minutes
