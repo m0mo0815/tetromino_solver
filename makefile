@@ -1,6 +1,6 @@
 # Compiler and flags
 CXX = g++-14
-CXXFLAGS = -std=c++11 -O3 -march=armv8-a
+CXXFLAGS = -std=c++17 -O3 -march=armv8-a
 
 # Source files and executable
 SRC = tetromino_solver.cpp
@@ -13,7 +13,7 @@ OUTPUT_DIR = output
 UNIQUE_ID = $(shell shasum $(SRC) | awk '{print $$1}')
 
 # Grid sizes to run
-GRID_SIZES = 10x10 10x20 20x20 30x30
+GRID_SIZES = 10x10 10x20 20x20
 
 # Python virtual environment
 VENV_PYTHON = ~/.pyenv/versions/playground/bin/python3
