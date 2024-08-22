@@ -1,0 +1,7 @@
+{
+    "makefile.configureOnOpen": true,
+    "files.associations": {
+        "new": "cpp",
+        "iostream": "cpp"
+    }
+}

@@ -26,6 +26,12 @@ def is_connected(grid, row, col):
 
 # Visualize the grid using matplotlib (color or black-and-white based on output_style)
 def visualize_grid(grid, output_style='color', save_as_png=False, output_filename=""):
+    mm_per_inch = 25.4  # 1 inch = 25.4 mm
+    element_size_mm = 5  # Desired size of each grid element in millimeters
+    
+    # Calculate figure size in inches
+    figsize = (grid.shape[1] * element_size_mm / mm_per_inch, grid.shape[0] * element_size_mm / mm_per_inch)
+    
     if output_style == 'color':
         unique_ids = np.unique(grid)
         num_colors = len(unique_ids)
@@ -35,17 +41,11 @@ def visualize_grid(grid, output_style='color', save_as_png=False, output_filenam
         colors = [base_cmap(i % 20) for i in range(num_colors)]
         cmap = plt.cm.colors.ListedColormap(colors)
 
-        plt.figure(figsize=(10, 6))  # Adjust for grid size
-        plt.imshow(grid, cmap=cmap, interpolation='none', extent=[0, grid.shape[1], grid.shape[0], 0])
-
-        # Adjust the gridlines to align with the grid cells
-        plt.grid(which='both', color='black', linestyle='-', linewidth=2)
-        plt.xticks(np.arange(0, grid.shape[1] + 1, 1))
-        plt.yticks(np.arange(0, grid.shape[0] + 1, 1))
-        plt.grid(which='minor', color='black', linestyle='-', linewidth=2)
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.imshow(grid, cmap=cmap, interpolation='none', extent=[0, grid.shape[1], grid.shape[0], 0])
 
     elif output_style == 'bw':
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=figsize)
         ax.set_xlim(0, grid.shape[1])
         ax.set_ylim(0, grid.shape[0])
         ax.invert_yaxis()
@@ -77,12 +77,19 @@ def visualize_grid(grid, output_style='color', save_as_png=False, output_filenam
         ax.set_yticks([])
         ax.grid(False)
 
+    # Remove axes spines
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    
+    # Remove gridlines
+    ax.grid(False)
+
     # Save the figure as a PNG file
     if save_as_png:
-        plt.savefig(output_filename, bbox_inches='tight')
+        plt.savefig(output_filename, bbox_inches='tight', dpi=300)  # Use high DPI for better quality
         print(f"Grid saved as {output_filename}")
 
-    # Remove the plt.show() call to prevent the figure from blocking execution.
+    # Close the figure to prevent it from displaying
     plt.close()
 
 if __name__ == "__main__":

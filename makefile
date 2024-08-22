@@ -13,7 +13,7 @@ OUTPUT_DIR = output
 UNIQUE_ID = $(shell shasum $(SRC) | awk '{print $$1}')
 
 # Grid sizes to run
-GRID_SIZES = 10x10 10x20 20x20
+GRID_SIZES = 10x10
 # 20x20
 
 # Python virtual environment
