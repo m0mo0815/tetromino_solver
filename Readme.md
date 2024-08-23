@@ -8,7 +8,7 @@ This version is only tested on a M3 Mac with OS 14.3 (23D56) so far. Running it 
 
 ## Changelog
 
-- **2024-08-23** - Initial release able to solve 50x50 grids in reasonable time. This version includes simple *heuristic ordering*, *backtracking pruning*, *bitwise representation* and *memory optimization with linear arrays*
+- **2024-08-23** - Initial release able to solve 50x50 grids in reasonable time (around 190 seconds). This version includes simple *heuristic ordering*, *backtracking pruning*, *bitwise representation* and *memory optimization via linear arrays*
 
 ## Potential Improvement Paths
 
@@ -24,4 +24,3 @@ This version is only tested on a M3 Mac with OS 14.3 (23D56) so far. Running it 
     - grid splitting
 - alternative algorithms like constraint satisfaction or dynamic programming
 - dynamic programming memorization (not impacting the symmetry and shape distribution)
-

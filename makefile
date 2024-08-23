@@ -13,7 +13,7 @@ OUTPUT_DIR = output
 UNIQUE_ID = $(shell shasum $(SRC) | awk '{print $$1}')
 
 # Grid sizes to run
-GRID_SIZES = 20x20
+GRID_SIZES = 50x50
 
 # Python virtual environment called playground based on python 3.9.18 - see requirements.txt
 VENV_PYTHON = ~/.pyenv/versions/playground/bin/python3

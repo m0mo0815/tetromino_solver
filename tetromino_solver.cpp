@@ -58,14 +58,16 @@ void export_grid(int* grid, int rows, int cols, const std::string& filename, boo
     file.close();
 }
 
-// Function to check if a tetromino can be placed on the grid
 bool can_place_tetromino(int* grid, uint16_t tetromino, int top_left_row, int top_left_col, int rows, int cols) {
-    for (int i = 0; i < TETROMINO_SIZE; ++i) {
+    int base_grid_index = top_left_row * cols + top_left_col;
+    
+    for (int i = 0, row_offset = 0; i < TETROMINO_SIZE; ++i, row_offset += TETROMINO_SIZE) {
+        int grid_row_offset = i * cols;
         for (int j = 0; j < TETROMINO_SIZE; ++j) {
-            if ((tetromino & (1 << (15 - (i * TETROMINO_SIZE + j)))) != 0) { // Bitwise check
-                int grid_row = top_left_row + i;
-                int grid_col = top_left_col + j;
-                if (grid_row >= rows || grid_col >= cols || grid[grid_row * cols + grid_col] != 0) {
+            int bit_index = 15 - (row_offset + j);
+            if (tetromino & (1 << bit_index)) {  // Bitwise check
+                int grid_index = base_grid_index + grid_row_offset + j;
+                if (top_left_row + i >= rows || top_left_col + j >= cols || grid[grid_index] != 0) {
                     return false;
                 }
             }
@@ -76,10 +78,14 @@ bool can_place_tetromino(int* grid, uint16_t tetromino, int top_left_row, int to
 
 // Function to place a tetromino on the grid
 void place_tetromino(int* grid, uint16_t tetromino, int top_left_row, int top_left_col, int unique_id, int cols) {
-    for (int i = 0; i < TETROMINO_SIZE; ++i) {
+    int base_grid_index = top_left_row * cols + top_left_col;
+
+    for (int i = 0, row_offset = 0; i < TETROMINO_SIZE; ++i, row_offset += TETROMINO_SIZE) {
+        int grid_row_offset = i * cols;
         for (int j = 0; j < TETROMINO_SIZE; ++j) {
-            if ((tetromino & (1 << (15 - (i * TETROMINO_SIZE + j)))) != 0) { // Bitwise check
-                grid[(top_left_row + i) * cols + (top_left_col + j)] = unique_id;
+            int bit_index = 15 - (row_offset + j);
+            if (tetromino & (1 << bit_index)) {  // Bitwise check
+                grid[base_grid_index + grid_row_offset + j] = unique_id;
             }
         }
     }
@@ -87,11 +93,16 @@ void place_tetromino(int* grid, uint16_t tetromino, int top_left_row, int top_le
 
 // Function to remove a tetromino from the grid
 void remove_tetromino(int* grid, uint16_t tetromino, int top_left_row, int top_left_col, int unique_id, int cols) {
-    for (int i = 0; i < TETROMINO_SIZE; ++i) {
+    int base_grid_index = top_left_row * cols + top_left_col;
+
+    for (int i = 0, row_offset = 0; i < TETROMINO_SIZE; ++i, row_offset += TETROMINO_SIZE) {
+        int grid_row_offset = i * cols;
         for (int j = 0; j < TETROMINO_SIZE; ++j) {
-            if ((tetromino & (1 << (15 - (i * TETROMINO_SIZE + j)))) != 0) { // Bitwise check
-                if (grid[(top_left_row + i) * cols + (top_left_col + j)] == unique_id) {
-                    grid[(top_left_row + i) * cols + (top_left_col + j)] = 0;
+            int bit_index = 15 - (row_offset + j);
+            if (tetromino & (1 << bit_index)) {  // Bitwise check
+                int grid_index = base_grid_index + grid_row_offset + j;
+                if (grid[grid_index] == unique_id) {
+                    grid[grid_index] = 0;
                 }
             }
         }
@@ -100,22 +111,22 @@ void remove_tetromino(int* grid, uint16_t tetromino, int top_left_row, int top_l
 
 // Function to calculate the heuristic score for a given tetromino
 double calculate_heuristic_score(uint16_t tetromino, int usage_count) {
-    int cells_covered = std::bitset<16>(tetromino).count(); // Number of bits set to 1
+    int cells_covered = std::bitset<16>(tetromino).count();  // Number of bits set to 1
     int complexity = 0;
 
-    // Calculate complexity based on the number of turns in the shape
-    for (int i = 0; i < TETROMINO_SIZE - 1; ++i) {
+    for (int i = 0, row_offset = 0; i < TETROMINO_SIZE - 1; ++i, row_offset += TETROMINO_SIZE) {
         for (int j = 0; j < TETROMINO_SIZE - 1; ++j) {
-            bool cur = (tetromino & (1 << (15 - (i * TETROMINO_SIZE + j)))) != 0;
-            bool right = (tetromino & (1 << (15 - (i * TETROMINO_SIZE + (j + 1))))) != 0;
-            bool down = (tetromino & (1 << (15 - ((i + 1) * TETROMINO_SIZE + j)))) != 0;
+            int bit_pos = 15 - (row_offset + j);
+            bool cur = tetromino & (1 << bit_pos);
+            bool right = tetromino & (1 << (bit_pos - 1));
+            bool down = tetromino & (1 << (bit_pos - TETROMINO_SIZE));
             complexity += cur && (!right || !down);
         }
     }
 
     double size_factor = static_cast<double>(cells_covered);
     double complexity_factor = static_cast<double>(complexity);
-    double usage_penalty = std::log(usage_count + 1); // Logarithmic penalty for overuse
+    double usage_penalty = std::log(usage_count + 1);  // Logarithmic penalty for overuse
 
     return size_factor + complexity_factor - usage_penalty;
 }
@@ -128,32 +139,55 @@ bool has_isolated_cells(int* grid, int rows, int cols) {
         return r >= 0 && r < rows && c >= 0 && c < cols;
     };
 
-    auto bfs = [&](int r, int c) {
-        std::queue<std::pair<int, int>> q;
-        q.push({r, c});
-        visited[r * cols + c] = true;
-        int cell_count = 0;
+auto bfs = [&](int r, int c) {
+    std::queue<std::pair<int, int>> q;
+    q.push({r, c});
+    visited[r * cols + c] = true;
+    int cell_count = 0;
 
-        std::vector<int> dr = {-1, 1, 0, 0};
-        std::vector<int> dc = {0, 0, -1, 1};
+    while (!q.empty()) {
+        auto [cr, cc] = q.front();
+        q.pop();
+        cell_count++;
 
-        while (!q.empty()) {
-            auto [cr, cc] = q.front();
-            q.pop();
-            cell_count++;
+        // Unrolled loop for four directions: up, down, left, right
+        int nr, nc;
 
-            for (int i = 0; i < 4; ++i) {
-                int nr = cr + dr[i];
-                int nc = cc + dc[i];
-
-                if (is_within_bounds(nr, nc) && grid[nr * cols + nc] == 0 && !visited[nr * cols + nc]) {
-                    visited[nr * cols + nc] = true;
-                    q.push({nr, nc});
-                }
-            }
+        // Up
+        nr = cr - 1;
+        nc = cc;
+        if (is_within_bounds(nr, nc) && grid[nr * cols + nc] == 0 && !visited[nr * cols + nc]) {
+            visited[nr * cols + nc] = true;
+            q.push({nr, nc});
         }
-        return cell_count;
-    };
+
+        // Down
+        nr = cr + 1;
+        nc = cc;
+        if (is_within_bounds(nr, nc) && grid[nr * cols + nc] == 0 && !visited[nr * cols + nc]) {
+            visited[nr * cols + nc] = true;
+            q.push({nr, nc});
+        }
+
+        // Left
+        nr = cr;
+        nc = cc - 1;
+        if (is_within_bounds(nr, nc) && grid[nr * cols + nc] == 0 && !visited[nr * cols + nc]) {
+            visited[nr * cols + nc] = true;
+            q.push({nr, nc});
+        }
+
+        // Right
+        nr = cr;
+        nc = cc + 1;
+        if (is_within_bounds(nr, nc) && grid[nr * cols + nc] == 0 && !visited[nr * cols + nc]) {
+            visited[nr * cols + nc] = true;
+            q.push({nr, nc});
+        }
+    }
+    return cell_count;
+};
+
 
     int total_empty_cells = 0;
     for (int i = 0; i < rows; ++i) {
