@@ -2,3 +2,4 @@ archive/
 .ipynb_checkpoints/
 output/
 .vscode/
+tetromino_solver
