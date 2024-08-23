@@ -15,7 +15,7 @@ UNIQUE_ID = $(shell shasum $(SRC) | awk '{print $$1}')
 # Grid sizes to run
 GRID_SIZES = 20x20
 
-# Python virtual environment
+# Python virtual environment called playground based on python 3.9.18 - see requirements.txt
 VENV_PYTHON = ~/.pyenv/versions/playground/bin/python3
 
 .PHONY: all run clean visualize full_run
@@ -30,7 +30,7 @@ run: $(EXE)
 		rows=$$(echo $$size | cut -d'x' -f1); \
 		cols=$$(echo $$size | cut -d'x' -f2); \
 		echo "Running with $$rows rows and $$cols cols..."; \
-		time ./$(EXE) $$rows $$cols $(UNIQUE_ID) > output.txt; \
+		time ./$(EXE) $$rows $$cols $(UNIQUE_ID) > output/log_output.txt; \
 	done
 
 visualize: run
