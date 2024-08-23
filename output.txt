@@ -1,0 +1,1 @@
+Grid solved and exported to output/2d4ccd7b5d80508140af1cb4c13f145c2ab290b9_20x20_grid_output.txt

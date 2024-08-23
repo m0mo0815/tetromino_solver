@@ -13,7 +13,7 @@ OUTPUT_DIR = output
 UNIQUE_ID = $(shell shasum $(SRC) | awk '{print $$1}')
 
 # Grid sizes to run
-GRID_SIZES = 10x10 10x20 20x20 30x30 40x40
+GRID_SIZES = 20x20
 
 # Python virtual environment
 VENV_PYTHON = ~/.pyenv/versions/playground/bin/python3
@@ -30,7 +30,7 @@ run: $(EXE)
 		rows=$$(echo $$size | cut -d'x' -f1); \
 		cols=$$(echo $$size | cut -d'x' -f2); \
 		echo "Running with $$rows rows and $$cols cols..."; \
-		time ./$(EXE) $$rows $$cols $(UNIQUE_ID); \
+		time ./$(EXE) $$rows $$cols $(UNIQUE_ID) > output.txt; \
 	done
 
 visualize: run
